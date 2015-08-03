@@ -1,0 +1,2 @@
+# automail
+use python3
