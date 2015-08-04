@@ -10,8 +10,8 @@ def build_send_attach(recv_attach_dir)
 	return
 
 host = 'pop.163.com'  
-username = 'madlas1977@163.com'  
-password = '12345678l'  
+username = 'xxxxxxxx@163.com'  
+password = 'xxxxxxxx'  
 
 #连接服务器
 server = poplib.POP3(host)
