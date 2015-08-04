@@ -6,6 +6,9 @@ import poplib
 from email import parser
 
 
+def build_send_attach(recv_attach_dir)
+	return
+
 host = 'pop.163.com'  
 username = 'madlas1977@163.com'  
 password = '12345678l'  
@@ -34,19 +37,14 @@ for i in range(mail_num):
 	mail_uidl = server.uidl(i + 1)
 	if mail_uidl[0:3] == b'+OK':
 		mail_uidl = mail_uidl[-22:].decode('ascii')
-	#	print(mail_uidl)
-	#	print(trimln_lst)
 		#如果是新邮件则接收
 		if mail_uidl not in trimln_lst:
 			rmfp.write('%s\n' %mail_uidl)	
 			trimln_lst.append(mail_uidl)
 			#获得邮件
 			messages = [server.retr(i + 1)]
-			#messages = [server.retr(i) for i in range(1, len(server.list()[1]) + 1)]  
 			# Concat message pieces:  
 			messages = ["\n".join(mssg[1]) for mssg in messages]  
-
-			#print messages  
 					  
 			#Parse message intom an email object:  
 			# 分析  
@@ -69,11 +67,10 @@ for i in range(mail_num):
 					# 保存附件  
 					if fileName:  
 						data = part.get_payload(decode=True)  
-						#fileName = "%s.%d.%s" % (mailName, j, fileName)  
-						fileName = "recv-bin/%s" % (fileName)  
-						fEx = open(fileName, 'wb')  
-						fEx.write(data)  
-						fEx.close()  
+						with open("recv-bin/%s" % (fileName), 'wb') as fEx:
+							fEx.write(data)
+						build_send_attach("recv-bin/%s" % (fileName))
+
 					elif contentType == 'text/plain' or contentType == 'text/html':  
 						#保存正文  
 						data = part.get_payload(decode=True)  
