@@ -6,7 +6,7 @@ import poplib
 from email import parser
 
 
-def build_send_attach(recv_attach_dir)
+def build_send_attach(recv_attach_fname)
 	return
 
 host = 'pop.163.com'  
@@ -69,7 +69,7 @@ for i in range(mail_num):
 						data = part.get_payload(decode=True)  
 						with open("recv-bin/%s" % (fileName), 'wb') as fEx:
 							fEx.write(data)
-						build_send_attach("recv-bin/%s" % (fileName))
+						build_send_attach(fileName)
 
 					elif contentType == 'text/plain' or contentType == 'text/html':  
 						#保存正文  
