@@ -2,6 +2,7 @@
 # coding=utf-8  
 # Python 2.7.3  
 # 获取邮件内容  
+
 import poplib
 from email import parser
 
