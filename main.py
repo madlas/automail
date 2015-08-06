@@ -2,17 +2,14 @@
 # coding=utf-8  
 # Python 2.7.3  
 # 获取邮件内容  
-
 import poplib
 from email import parser
+from exec_conf import *
 
-
-def build_send_attach(recv_attach_fname)
-	return
 
 host = 'pop.163.com'  
-username = 'xxxxxxxx@163.com'  
-password = 'xxxxxxxx'  
+username = 'madlas1977@163.com'  
+password = '12345678l'  
 
 #连接服务器
 server = poplib.POP3(host)
@@ -47,6 +44,9 @@ for i in range(mail_num):
 			# Concat message pieces:  
 			messages = ["\n".join(mssg[1]) for mssg in messages]  
 					  
+			#清除临时文件		  
+			os.popen("rm -f recv-bin/*")
+			os.popen("rm -f send-bin/*")
 			#Parse message intom an email object:  
 			# 分析  
 			messages = [parser.Parser().parsestr(mssg) for mssg in messages]  
@@ -61,6 +61,7 @@ for i in range(mail_num):
 				print >> f, "Subject: ", message["Subject"]  
 				print >> f, "Data: "  
 				j = 0  
+
 				for part in message.walk():  
 					j = j + 1  
 					fileName = part.get_filename()  

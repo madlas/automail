@@ -1,36 +1,32 @@
 import ConfigParser
 import string, os, sys
-cf = ConfigParser.ConfigParser()
-cf.read("test.conf")
 
-#return all section
-secs = cf.sections()
-print 'sections:', secs
- 
-opts = cf.options("db")
-print 'options:', opts
-  
-kvs = cf.items("db")
-print 'db:', kvs
-   
-#read by type
-db_host = cf.get("db", "db_host")
-db_port = cf.getint("db", "db_port")
-db_user = cf.get("db", "db_user")
-db_pass = cf.get("db", "db_pass")
-    
-#read int
-threads = cf.getint("concurrent", "thread")
-processors = cf.getint("concurrent", "processor")
-	 
-print "db_host:", db_host
-print "db_port:", db_port
-print "db_user:", db_user
-print "db_pass:", db_pass
-	  
-print "thread:", threads
-print "processor:", processors
-	   
-#modify one value and write to file
-cf.set("db", "db_pass", "xgmtest")
-cf.write(open("test.conf", "w"))
+#recv_attach = 'fhj2sys_qdb.dsp'
+def build_send_attach(recv_attach):
+	conf = ConfigParser.ConfigParser()
+	conf.read("conf/send_ruler.conf")
+
+	secs = conf.sections()
+	for sec in secs:
+		if sec == recv_attach and conf.getint(sec, "seg_type") == 2:
+			act_type = conf.getint(sec, "act_type")
+			if act_type == 1:
+				work_dir = conf.get(sec, "work_dir")
+				save_dir = conf.get(sec, "save_dir")
+				script_name = conf.get(sec, "script_name")
+				send_attach_name = conf.get(sec, "send_attach_name")
+				print("cp -f recv-bin/%s %s%s" %(recv_attach, work_dir, save_dir))
+				os.popen("cp -f recv-bin/%s %s%s" %(recv_attach, work_dir, save_dir))
+				print('>>>>>>>>1\n')
+				os.popen("cd %s;./%s; cd -" %(work_dir, script_name))
+				print('>>>>>>>>2\n')
+				os.popen("cp -f %sfile/send-attach.tar send-bin/%s" %(work_dir, send_attach_name)) 
+				print('>>>>>>>>3\n')
+				
+	
+	return 0
+
+
+
+
+
