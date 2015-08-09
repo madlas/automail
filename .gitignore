@@ -1,0 +1,8 @@
+9k-work/
+__pycache__/
+exec_conf.pyc
+recv-bin/
+smtp.pyc
+tags
+conf/recvmail.lst
+

@@ -47,8 +47,8 @@ for i in range(mail_num):
 	if mail_uidl[0:3] == b'+OK':
 		mail_uidl = mail_uidl[-22:].decode('ascii')
 		#如果是新邮件则接收
-		#if mail_uidl not in trimln_lst:
-		if True:
+		if mail_uidl not in trimln_lst:
+		#if True:
 			rmfp.write('%s\n' %mail_uidl)	
 			trimln_lst.append(mail_uidl)
 
