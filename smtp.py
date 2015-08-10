@@ -36,10 +36,10 @@ def smtpCreMailWithAttach(from_addr, to_addr, subject, msg_text, attach_files):
 
 	return msgRoot
 
-def smtpSendMail(from_addr, to_addr, attach_lists):
-	smtpsvr= smtplib.SMTP(smtp_server, 25)
+def smtpSendMail(from_addr, to_addr, attach_lists, svr_inf):
+	smtpsvr= smtplib.SMTP(svr_inf['smtphost'], 25)
 	smtpsvr.set_debuglevel(1)
-	smtpsvr.login(from_addr, password)
+	smtpsvr.login(svr_inf['username'], svr_inf['password'])
 
 	msg = smtpCreMailWithAttach(from_addr, to_addr, '1234', '2234', attach_lists)
 	smtpsvr.sendmail(from_addr, [to_addr], msg.as_string())
