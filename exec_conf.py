@@ -31,8 +31,7 @@ def build_send_attach(attach_file, act_type):
 				os.popen("cp -f %sfile/send-attach.tar send-bin/%s" %(work_dir, send_attach_name)) 
 	#只转发
 	elif act_type == 10:
-		#os.popen("cp -f recv-bin/* send-bin")
-		pass
+		os.popen("cp -f recv-bin/* send-bin")
 	else:
 		pass
 
