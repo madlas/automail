@@ -1,2 +1,2 @@
 # automail
-use python3
+use python2.73

@@ -1,85 +1,140 @@
-#!/usr/bin/env python  
-# coding=utf-8  
-# Python 2.7.3  
-# 获取邮件内容  
-import poplib
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from email import parser
+from email.header import decode_header
+from email.utils import parseaddr
 from exec_conf import *
+from smtp import *
+
+import poplib
+import email
+import re
 
 
-host = 'pop.163.com'  
-username = 'madlas1977@163.com'  
-password = '12345678l'  
+pop_inf = {'pophost':'pop.163.com', 'smtphost':'smtp.163.com', 'username':'madlas1977@163.com', 'password':'12345678l', 'act_type':1, 'reply_mail':'madlas1977@aa.cc', 'allow_list':''}
 
-#连接服务器
-server = poplib.POP3(host)
-server.set_debuglevel(1)
-print(server.getwelcome().decode('utf-8'))
+#获得字符编码方法
+def get_charset(message, default="ascii"):
+   #Get the message charset
+   return message.get_charset()
+   return default
 
-#用户名密码认证
-server.user(username)
-server.pass_(password)
-mail_num, mail_size = server.stat()
+def decode_str(s):
+    value, charset = decode_header(s)[0]
+    if charset:
+        value = value.decode(charset)
+    return value
+
+def deal_mail(mail_inf):
+	allow_list = re.split(',', pop_inf['allow_list'])		
+	#连接服务器
+	popsvr = poplib.POP3(mail_inf['pophost'])
+	popsvr.set_debuglevel(0)
+	print(popsvr.getwelcome().decode('utf-8'))
+
+	#用户名密码认证
+	popsvr.user(mail_inf['username'])
+	popsvr.pass_(mail_inf['password'])
+	mail_num, mail_size = popsvr.stat()
 
 
-#查找新邮件
-trimln_lst = []
-#trimln_lst.clear()
-with open('conf/recvmail.lst', 'r') as rmfp:
-	for line in rmfp.readlines():
-		trimln_lst.append(line.strip())
+	#查找新邮件
+	trimln_lst = []
+	with open('conf/recvmail.lst', 'r') as rmfp:
+		for line in rmfp.readlines():
+			trimln_lst.append(line.strip())
 
-rmfp = open('conf/recvmail.lst', 'a')
+	rmfp = open('conf/recvmail.lst', 'a')
+	for i in range(mail_num):
+		mail_uidl = popsvr.uidl(i + 1)
+		if mail_uidl[0:3] == b'+OK':
+			mail_uidl = mail_uidl[-22:].decode('ascii')
+			#如果是新邮件则接收
+			if mail_uidl not in trimln_lst:
+				rmfp.write('%s\n' %mail_uidl)	
+				trimln_lst.append(mail_uidl)
 
-for i in range(mail_num):
-	mail_uidl = server.uidl(i + 1)
-	if mail_uidl[0:3] == b'+OK':
-		mail_uidl = mail_uidl[-22:].decode('ascii')
-		#如果是新邮件则接收
-		if mail_uidl not in trimln_lst:
-			rmfp.write('%s\n' %mail_uidl)	
-			trimln_lst.append(mail_uidl)
-			#获得邮件
-			messages = [server.retr(i + 1)]
-			# Concat message pieces:  
-			messages = ["\n".join(mssg[1]) for mssg in messages]  
-					  
-			#清除临时文件		  
-			os.popen("rm -f recv-bin/*")
-			os.popen("rm -f send-bin/*")
-			#Parse message intom an email object:  
-			# 分析  
-			messages = [parser.Parser().parsestr(mssg) for mssg in messages]  
-			i = 0  
-			for message in messages:  
-				i = i + 1  
-				mailName = "mail%d.%s" % (i, message["Subject"])  
-				f = open(mailName + '.log', 'w');  
-				print >> f, "Date: ", message["Date"]  
-				print >> f, "From: ", message["From"]  
-				print >> f, "To: ", message["To"]  
-				print >> f, "Subject: ", message["Subject"]  
-				print >> f, "Data: "  
-				j = 0  
+				#获得邮件
+				messages = [popsvr.retr(i + 1)]
+				# Concat message pieces:  
+				messages = ["\n".join(mssg[1]) for mssg in messages]  
 
-				for part in message.walk():  
-					j = j + 1  
-					fileName = part.get_filename()  
-					contentType = part.get_content_type()  
-					# 保存附件  
-					if fileName:  
-						data = part.get_payload(decode=True)  
-						with open("recv-bin/%s" % (fileName), 'wb') as fEx:
-							fEx.write(data)
-						build_send_attach(fileName)
+						  
+				#清除临时文件		  
+				os.popen("rm -f recv-bin/*")
+				os.popen("rm -f send-bin/*")
+				#Parse message intom an email object:  
+				# 分析  
+				messages = [parser.Parser().parsestr(mssg) for mssg in messages]  
+				for message in messages:  
+					hdr, from_addr = parseaddr(message['From'])
+					hdr, to_addr = parseaddr(message['To'])
 
-					elif contentType == 'text/plain' or contentType == 'text/html':  
-						#保存正文  
-						data = part.get_payload(decode=True)  
-						print >> f, data  
+					if from_addr not in allow_list:
+						continue;
+					if pop_inf['act_type'] == 10:
+						to_addr = pop_inf['reply_mail']
+					else:
+						to_addr = from_addr
+					
+					for part in message.walk():  
+						if not part.is_multipart():
+							fileName = part.get_filename()  
+							contentType = part.get_content_type()  
+							charset = get_charset(part)
+							
+							# 保存附件  
+							if fileName:  
+								h = email.Header.Header(fileName)
+								dh = email.Header.decode_header(h)
+								fname = dh[0][0]
+								encodeStr = dh[0][1]
+								if encodeStr != None:
+									if charset == None:
+										fname = fname.decode(encodeStr, 'gbk')
+									else:
+										fname = fname.decode(encodeStr, charset)
 
-				f.close()  
+								data = part.get_payload(decode=True)  
+								with open("recv-bin/%s" % (fname), 'wb') as fEx:
+									fEx.write(data)
+								build_send_attach(fname, mail_inf['act_type'])
 
-rmfp.close()
-server.quit()
+							elif contentType == 'text/plain' or contentType == 'text/html':  
+								#保存正文  
+								data = part.get_payload(decode=True)  
+				
+				if mail_inf['act_type'] in [2, 10]:
+					smtpSendMail(pop_inf['smtp_user'], to_addr, os.listdir('./send-bin'), mail_inf)
+					
+	rmfp.close()
+	popsvr.quit()
+
+	return 0
+
+#===========================>><<<======================
+conf = ConfigParser.ConfigParser()
+conf.read("conf/mail-host.ini")
+secs = conf.sections()
+for sec in secs:
+	if conf.getint(sec, 'enabled') == 0:
+			continue
+	#读取服务器配置
+	pop_inf['pophost'] = conf.get(sec, 'pop3svr')
+	pop_inf['smtphost'] = conf.get(sec, 'smtpsvr')
+	pop_inf['username'] = sec
+	pop_inf['password'] = conf.get(sec, 'password')
+	pop_inf['act_type'] = conf.getint(sec, 'act_type')
+	pop_inf['smtp_user'] = conf.get(sec, 'smtp_user')
+	pop_inf['smtp_pwd'] = conf.get(sec, 'smtp_pwd')
+	if pop_inf['act_type'] == 10:
+		pop_inf['reply_mail'] = conf.get(sec, 'reply_mail')
+
+	pop_inf['allow_list'] = conf.get(sec, 'allow_list')		
+	
+
+	print 'Connect pop3 server "%s".....' %(pop_inf['pophost'])
+
+	deal_mail(pop_inf)
 
