@@ -9,14 +9,10 @@ from smtp import *
 
 import poplib
 import email
+import re
 
-pophost = 'pop.163.com'  
-smtphost = 'smtp.163.com'
 
-username = 'madlas1977@163.com'  
-password = '12345678l'  
-
-pop_inf = {'pophost':'pop.163.com', 'smtphost':'smtp.163.com', 'username':'madlas1977@163.com', 'password':'12345678l', 'act_type':1, 'reply_mail':'madlas1977@aa.cc'}
+pop_inf = {'pophost':'pop.163.com', 'smtphost':'smtp.163.com', 'username':'madlas1977@163.com', 'password':'12345678l', 'act_type':1, 'reply_mail':'madlas1977@aa.cc', 'allow_list':''}
 
 #获得字符编码方法
 def get_charset(message, default="ascii"):
@@ -31,6 +27,7 @@ def decode_str(s):
     return value
 
 def deal_mail(mail_inf):
+	allow_list = re.split(',', pop_inf['allow_list'])		
 	#连接服务器
 	popsvr = poplib.POP3(mail_inf['pophost'])
 	popsvr.set_debuglevel(0)
@@ -49,14 +46,12 @@ def deal_mail(mail_inf):
 			trimln_lst.append(line.strip())
 
 	rmfp = open('conf/recvmail.lst', 'a')
-
 	for i in range(mail_num):
 		mail_uidl = popsvr.uidl(i + 1)
 		if mail_uidl[0:3] == b'+OK':
 			mail_uidl = mail_uidl[-22:].decode('ascii')
 			#如果是新邮件则接收
-			#if mail_uidl not in trimln_lst:
-			if True:
+			if mail_uidl not in trimln_lst:
 				rmfp.write('%s\n' %mail_uidl)	
 				trimln_lst.append(mail_uidl)
 
@@ -64,6 +59,7 @@ def deal_mail(mail_inf):
 				messages = [popsvr.retr(i + 1)]
 				# Concat message pieces:  
 				messages = ["\n".join(mssg[1]) for mssg in messages]  
+
 						  
 				#清除临时文件		  
 				os.popen("rm -f recv-bin/*")
@@ -75,7 +71,13 @@ def deal_mail(mail_inf):
 					hdr, from_addr = parseaddr(message['From'])
 					hdr, to_addr = parseaddr(message['To'])
 
-
+					if from_addr not in allow_list:
+						continue;
+					if pop_inf['act_type'] == 10:
+						to_addr = pop_inf['reply_mail']
+					else:
+						to_addr = from_addr
+					
 					for part in message.walk():  
 						if not part.is_multipart():
 							fileName = part.get_filename()  
@@ -103,31 +105,36 @@ def deal_mail(mail_inf):
 								#保存正文  
 								data = part.get_payload(decode=True)  
 				
-				if mail_inf['act_type'] == 1:
-					pass
-				elif mail_inf['act_type'] == 2: 
-					smtpSendMail(to_addr, from_addr, os.listdir('./send-bin'), mail_inf)
-				elif mail_inf['act_type'] == 10: 
-					smtpSendMail(to_addr, mail_inf['reply_mail'], os.listdir('./send-bin'), mail_inf)
-					pass
+				if mail_inf['act_type'] in [2, 10]:
+					smtpSendMail(pop_inf['smtp_user'], to_addr, os.listdir('./send-bin'), mail_inf)
 					
 	rmfp.close()
 	popsvr.quit()
 
 	return 0
 
+#===========================>><<<======================
 conf = ConfigParser.ConfigParser()
-conf.read("conf/send_ruler.conf")
+conf.read("conf/mail-host.ini")
 secs = conf.sections()
 for sec in secs:
-	if conf.getint(sec, "seg_type") == 99:
-		pop_inf['pophost'] = conf.get(sec, 'pop3svr')
-		pop_inf['smtphost'] = conf.get(sec, 'smtpsvr')
-		pop_inf['username'] = sec
-		pop_inf['password'] = conf.get(sec, 'password')
-		pop_inf['act_type'] = conf.getint(sec, 'act_type')
-		if pop_inf['act_type'] == 10:
-			pop_inf['reply_mail'] = conf.get(sec, 'reply_mail')
-			
-		deal_mail(pop_inf)
+	if conf.getint(sec, 'enabled') == 0:
+			continue
+	#读取服务器配置
+	pop_inf['pophost'] = conf.get(sec, 'pop3svr')
+	pop_inf['smtphost'] = conf.get(sec, 'smtpsvr')
+	pop_inf['username'] = sec
+	pop_inf['password'] = conf.get(sec, 'password')
+	pop_inf['act_type'] = conf.getint(sec, 'act_type')
+	pop_inf['smtp_user'] = conf.get(sec, 'smtp_user')
+	pop_inf['smtp_pwd'] = conf.get(sec, 'smtp_pwd')
+	if pop_inf['act_type'] == 10:
+		pop_inf['reply_mail'] = conf.get(sec, 'reply_mail')
+
+	pop_inf['allow_list'] = conf.get(sec, 'allow_list')		
+	
+
+	print 'Connect pop3 server "%s".....' %(pop_inf['pophost'])
+
+	deal_mail(pop_inf)
 

@@ -7,7 +7,7 @@ from smtp import*
 
 def build_send_attach(attach_file, act_type):
 	conf = ConfigParser.ConfigParser()
-	conf.read("conf/send_ruler.conf")
+	conf.read("conf/attach-build.ini")
 
 	secs = conf.sections()
 	#只上传	

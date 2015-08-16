@@ -24,10 +24,10 @@ create() {
 	mkdir -p $RECV_BIN $SEND_BIN
 	chmod 777 $RECV_BIN $SEND_BIN
 
-	rm $PRGDIR/recv-bin
-	rm $PRGDIR/send-bin
-	ln -s $RECV_BIN $PRGDIR/recv-bin
-	ln -s $SEND_BIN $PRGDIR/send-bin
+	#rm $PRGDIR/recv-bin
+	#rm $PRGDIR/send-bin
+	#ln -s $RECV_BIN $PRGDIR/recv-bin
+	#ln -s $SEND_BIN $PRGDIR/send-bin
 	
 	
             RETVAL=$?  
