@@ -15,15 +15,19 @@ from smtp import *
 reload(sys)
 sys.setdefaultencoding('gbk')
 
+def prt_dbg(msg):
+	#print >> fileLog, '<%s> %s' %(time.strftime('%Y-%m-%d %H:%M:%S'), msg)
+	print '<%s> %s' %(time.strftime('%Y-%m-%d %H:%M:%S'), msg)
+
 #保存文件方法（都是保存在指定的根目录下）
 def savefile(filename, data, path):
 	try:
 		filepath = path + filename
-		print 'Saved as ' + filepath
+		prt_dbg ('Saved as ' + filepath)
 		#os.popen("touch /tmp/%s" %(filename))
 		f = open(filepath, 'wb')
 	except:
-		print('filename error')
+		prt_dbg('filename error')
 		f.close()
 	f.write(data)
 	f.close()
@@ -65,19 +69,19 @@ def parseEmail(msg, mypath):
 				   else:
 					   fname = fname.decode(encodeStr, charset)
 			   data = part.get_payload(decode=True)
-			   print('Attachment : ' + fname)
+			   prt_dbg('Attachment : ' + fname)
 			   #保存附件
 			   if fname != None or fname != '':
 				   savefile(fname, data, mypath)            
+		   else:
+			   if contenttype in ['text/plain']:
+				   suffix = '.txt'
+			   if contenttype in ['text/html']:
+				   suffix = '.htm' 
+			   if charset == None:
+				   mailContent = part.get_payload(decode=True)
 			   else:
-				   if contenttype in ['text/plain']:
-					   suffix = '.txt'
-				   if contenttype in ['text/html']:
-					   suffix = '.htm' 
-				   if charset == None:
-					   mailContent = part.get_payload(decode=True)
-				   else:
-					   mailContent = part.get_payload(decode=True).decode(charset)         
+				   mailContent = part.get_payload(decode=True).decode(charset)         
    return  (mailContent, suffix)
 
 
@@ -115,14 +119,14 @@ def getMail(content_conf, diskroot, port = 993, ssl = 1):
 		
 		mailContent, suffix = parseEmail(msg, mypath)
 		#命令窗体输出邮件基本信息
-		print '\n'
-		print 'No : ' + str(number)
-		print strfrom
-		print strdate
-		print strsub
+		prt_dbg ('\n')
+		prt_dbg ('No : ' + str(number))
+		prt_dbg (strfrom)
+		prt_dbg (strdate)
+		prt_dbg (strsub)
 		'''
-		print 'Content:'
-		print mailContent
+		prt_dbg 'Content:'
+		prt_dbg mailContent
 		'''
 		#保存邮件正文
 		if (suffix != None and suffix != '') and (mailContent != None and mailContent != ''):
@@ -131,30 +135,23 @@ def getMail(content_conf, diskroot, port = 993, ssl = 1):
 	imapServer.close()
 	imapServer.logout()
 
-def LogError(msg):
-	
-	#fileLog = open("/mnt/ramdisk/automail.log", "a")
-	fileLog = open("./automail.log", "a")
-	print >> fileLog, '<%s> %s' %(time.strftime('%Y-%m-%d %H:%M:%S'), msg)
-	fileLog.close()
-	
-	#print '<%s> %s' %(time.strftime('%Y-%m-%d %H:%M:%S'), msg)
 
 '''	
 if __name__ =="__main__":
 	#邮件保存在e盘
 	mypath ='./'
-	print 'begin to get email...'
+	prt_dbg 'begin to get email...'
 	getMail('imap.163.com', 'madlasbooks@163.com', 'ipcwblbtxoypdezo', mypath, 993, 1)
 	#126邮箱登陆没用ssl
 	#getMail('imap.163.com', 'madlasbooks@163.com', 'ipcwblbtxoypdezo', mypath, 143, 0)
-	print 'the end of get email.'
+	prt_dbg 'the end of get email.'
 '''
 
 pop_inf = {'pophost':'pop.163.com', 'smtphost':'smtp.163.com', 'username':'madlas1977@163.com', 'password':'12345678l', 'act_type':1, 'reply_mail':'madlas1977@aa.cc', 'allow_list':'', 'smtp_user':'', 'smtp_pwd':''}
 
-mypath = './recv-bin/'
-
+recv_bin= './recv-bin/'
+send_bin= './send-bin/'
+mail_msg = './mail-msg/'
 ssl = 1
 port = 993
 
@@ -184,15 +181,15 @@ for sec in secs:
 	
 	allow_list = re.split(',', pop_inf['allow_list'])		
 
-	LogError('Connect imap server "%s".....' %(pop_inf['pophost']))
+	prt_dbg('Connect imap server "%s".....' %(pop_inf['pophost']))
 	#是否采用ssl
 	if ssl == 1:
 		imapServer = imaplib.IMAP4_SSL(pop_inf['pophost'], port)
 	else:
 		imapServer = imaplib.IMAP4(pop_inf['pophost'], port)
-	LogError('Login in! User:%s' %(pop_inf['username']))
+	prt_dbg('Login in! User:%s' %(pop_inf['username']))
 	imapServer.login(pop_inf['username'], pop_inf['password'])
-	LogError('Login in Success')
+	prt_dbg('Login in Success')
 	#imapServer.select()
 	imapServer.select("INBOX", readonly = False)
 	#邮件状态设置，新邮件为Unseen
@@ -203,8 +200,9 @@ for sec in secs:
 	for i in items[0].split():
 
 		#清除临时文件		  
-		os.popen("rm -f recv-bin/*")
-		os.popen("rm -f send-bin/*")
+		os.popen("rm -f %s*" %(recv_bin))
+		os.popen("rm -f %s*" %(send_bin))
+		os.popen("rm -f %s*" %(mail_msg))
 
 		#get information of email
 		resp, mailData = imapServer.fetch(i, "(RFC822)")   
@@ -226,48 +224,61 @@ for sec in secs:
 		if from_addr not in allow_list:
 			continue
 
-		if pop_inf['act_type'] == 10:
-			to_addr = pop_inf['reply_mail']
-		else:
-			to_addr = from_addr
 
 		strdate = 'Date : ' + msg["Date"]
 		subject = email.Header.decode_header(msg["Subject"])
 		sub = my_unicode(subject[0][0], subject[0][1])
 		strsub = 'Subject : ' + sub
 		
-		mailContent, suffix = parseEmail(msg, mypath)
+
+		if pop_inf['act_type'] == 10:
+			to_addr = pop_inf['reply_mail']
+		else:
+			to_addr = from_addr
+			if pop_inf['act_type'] == 2:
+				with open('./conf/reply-mail.lst', 'r') as rpmfp:
+					for ln in rpmfp.readlines():
+						if re.split(',', ln)[0] in sub:
+							to_addr = re.split(',', ln)[1]
+							break
+
+
+		mailContent, suffix = parseEmail(msg, recv_bin)
 		#命令窗体输出邮件基本信息
-		LogError('\n')
-		LogError('No : ' + str(number))
-		LogError(strfrom)
-		LogError(strdate)
-		LogError(strsub)
+		prt_dbg('\n')
+		prt_dbg('No : ' + str(number))
+		prt_dbg(strfrom)
+		prt_dbg(strdate)
+		prt_dbg(strsub)
 		
+
+		prt_dbg ('Content:')
+		prt_dbg (mailContent)
 
 		#保存邮件正文
 		if (suffix != None and suffix != '') and (mailContent != None and mailContent != ''):
-			savefile(str(number) + suffix, mailContent, mypath)
+			savefile(str(number) + suffix, mailContent, mail_msg)
 			number = number + 1
 
 
-		attach_list= os.listdir(mypath)
+		attach_list = os.listdir(recv_bin)
 		#附件打包
 		for attach in attach_list:
 			build_send_attach(attach, pop_inf['act_type'])
 
 		#发送附件
-		
-		if pop_inf['act_type'] in [2,10]:
-			smtpSendMail(pop_inf['smtp_user'], to_addr, os.listdir('./send-bin'), pop_inf)
-			LogError('Reply to <%s> file = \n' %(pop_inf['smtp_user']))
-			for send_name in os.listdir('./send-bin'):
-				LogError(send_name)
+		if pop_inf['act_type'] in [2,10] :#and len(os.listdir(send_bin)) > 0:
+				#smtpSendMail(pop_inf['smtp_user'], to_addr, sub, os.listdir(mail_msg), os.listdir(send_bin), pop_inf)
+				#sub = '邮件主题'
+				sendEmail(pop_inf['smtp_user'], to_addr, 'AutoMail: ' + sub, os.listdir(mail_msg), os.listdir(send_bin), pop_inf)
+				prt_dbg('Reply to <%s> file = \n' %(pop_inf['smtp_user']))
+				for send_name in os.listdir(send_bin):
+					prt_dbg(send_name)
 
 	
 	imapServer.close()
 	imapServer.logout()
-	LogError('*******************************************************\n')
+	prt_dbg('*******************************************************\n')
 			
 
 
