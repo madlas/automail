@@ -271,7 +271,7 @@ for sec in secs:
 				#smtpSendMail(pop_inf['smtp_user'], to_addr, sub, os.listdir(mail_msg), os.listdir(send_bin), pop_inf)
 				#sub = '邮件主题'
 				sendEmail(pop_inf['smtp_user'], to_addr, 'AutoMail: ' + sub, os.listdir(mail_msg), os.listdir(send_bin), pop_inf)
-				prt_dbg('Reply to <%s> file = \n' %(pop_inf['smtp_user']))
+				prt_dbg('Reply to <%s> file = \n' %(to_addr))
 				for send_name in os.listdir(send_bin):
 					prt_dbg(send_name)
 
